@@ -1,0 +1,118 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Meu Chatbot</title>
+  <style>
+    * { box-sizing: border-box; }
+    body {
+      margin: 0; background: #111827; color: #e5e7eb;
+      font: 16px system-ui, sans-serif;
+    }
+    main { max-width: 800px; margin: auto; padding: 24px; }
+    h1 { margin-bottom: 8px; }
+    .descricao { color: #aebbd0; }
+    #mensagens { min-height: 35vh; margin: 24px 0; }
+    .mensagem {
+      padding: 16px; margin: 12px 0; border-radius: 12px;
+      white-space: pre-wrap; overflow-wrap: anywhere;
+      background: #1f2937; line-height: 1.6;
+    }
+    .usuario { background: #1e3a5f; }
+    .erro { border: 1px solid #f87171; }
+    label { display: block; margin-bottom: 8px; }
+    textarea {
+      width: 100%; padding: 12px; border: 1px solid #64748b;
+      border-radius: 8px; background: #1f2937; color: white;
+      font: inherit; resize: vertical;
+    }
+    button {
+      margin-top: 12px; padding: 12px 24px; border: 0;
+      border-radius: 8px; background: #93c5fd; color: #111827;
+      font: inherit; font-weight: bold; cursor: pointer;
+    }
+    button:disabled { opacity: .6; cursor: wait; }
+  </style>
+</head>
+<body>
+  <main>
+    <h1>Meu Chatbot</h1>
+    <p class="descricao">
+      Qwen3 na minha VM · Lembra das últimas 3 trocas enquanto a página estiver aberta.
+    </p>
+    <div id="mensagens" role="log" aria-live="polite"></div>
+    <form id="formulario">
+      <label for="pergunta">Sua mensagem</label>
+      <textarea id="pergunta" rows="3" maxlength="4000" required></textarea>
+      <button id="enviar" type="submit">Enviar</button>
+    </form>
+  </main>
+  <script>
+    const formulario = document.querySelector("#formulario");
+    const pergunta = document.querySelector("#pergunta");
+    const enviar = document.querySelector("#enviar");
+    const mensagens = document.querySelector("#mensagens");
+    const historico = [];
+
+    function adicionar(texto, classe = "") {
+      const elemento = document.createElement("div");
+      elemento.className = "mensagem " + classe;
+      elemento.textContent = texto;
+      mensagens.appendChild(elemento);
+      elemento.scrollIntoView({ behavior: "smooth", block: "nearest" });
+      return elemento;
+    }
+
+    formulario.addEventListener("submit", async (evento) => {
+      evento.preventDefault();
+      const texto = pergunta.value.trim();
+      if (!texto || enviar.disabled) return;
+
+      adicionar("Você: " + texto, "usuario");
+      pergunta.value = "";
+      enviar.disabled = true;
+      const resposta = adicionar("Gerando resposta…");
+
+      try {
+        const resultado = await fetch("/chat", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+  		mensagem: texto,
+  		historico: historico
+		}),
+          signal: AbortSignal.timeout(150000)
+        });
+        const dados = await resultado.json();
+        if (!resultado.ok) {
+          throw new Error(
+            typeof dados.detail === "string"
+              ? dados.detail
+              : "Não foi possível processar a mensagem."
+          );
+        }
+        if (typeof dados.resposta !== "string") {
+          throw new Error("O servidor retornou uma resposta inesperada.");
+        }
+        resposta.textContent = "Assistente: " + dados.resposta;
+	historico.push(
+  		{ role: "user", content: texto },
+  		{ role: "assistant", content: dados.resposta }
+	);
+
+	if (historico.length > 6) {
+  		historico.splice(0, historico.length - 6);
+	}
+      } catch (erro) {
+        resposta.textContent = "Erro: " + erro.message;
+        resposta.classList.add("erro");
+        pergunta.value = texto;
+      } finally {
+        enviar.disabled = false;
+        pergunta.focus();
+      }
+    });
+  </script>
+</body>
+</html>
