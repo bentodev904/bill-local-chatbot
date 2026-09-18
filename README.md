@@ -1,7 +1,7 @@
 # Bill — Chatbot com execução local
 
 ## Imagem da interface
-<img width="454" height="519" alt="image" src="https://github.com/user-attachments/assets/7b09642c-0a38-4332-bac0-53a5801c533a" />
+<img width="454" height="519" alt="image" src="/docs/interface.png" />
 
 
 Chatbot web com backend em Python/FastAPI e modelo Qwen3 executado pelo Ollama em uma VM ARM da Oracle Cloud.
