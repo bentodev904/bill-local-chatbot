@@ -1,0 +1,16 @@
+[Unit]
+Description=Bill Chatbot - FastAPI with Ollama
+Wants=network-online.target ollama.service
+After=network-online.target ollama.service
+StartLimitIntervalSec=0
+
+[Service]
+Type=simple
+User=YOUR_USER
+WorkingDirectory=/home/YOUR_USER/chatbot
+ExecStart=/home/YOUR_USER/chatbot/.venv/bin/python -m uvicorn main:app --host 127.0.0.1 --port 8001
+Restart=always
+RestartSec=5
+
+[Install]
+WantedBy=multi-user.target
